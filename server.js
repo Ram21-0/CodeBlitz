@@ -83,13 +83,15 @@ app.get("/login", (req,res) => {
     res.sendFile(__dirname + "/html/login.html")
 })
 app.post("/login", login) //
+app.post("/logout", logout)
 
 app.get("/register", (req,res) => {
     res.sendFile(__dirname + "/html/signup.html")
 })
 app.post("/register", registerNewUser)
 
-app.post("/testSubmit",submitCode) //
+app.post("/submitCode", submitCode) //
+app.post("/sampleCases", runSampleTestCases)
 
 
 function getUserByUsername(username) {
@@ -239,106 +241,210 @@ function submitCode(req,res) {
         script: req.body.script,
         language: req.body.language,
         versionIndex: req.body.versionIndex,
-        stdin: req.body.stdin,
+        stdin: "",
         clientId: process.env.COMPILER_CLIENT_ID,
         clientSecret: process.env.COMPILER_SECRET
     }
 
-    request({
-        url: 'https://api.jdoodle.com/v1/execute',
-        method: "POST",
-        json: program
-    }, (error, response, body) => {
-        console.log('error:', error);
-        console.log('statusCode:', response && response.statusCode);
-        console.log('body:', body);
-        if (error) {
-            console.log("there was an error");
-            res.send(error)
-        }
+    ProblemModel.findById(problemId, (e,problem) => {
+        if(e) console.log(e)
         else {
+            const numberOfTestCases = problem.testCases.length
+            program.stdin = "" + numberOfTestCases
+            problem.testCases.forEach(c => program.stdin += "\n" + c)
 
-            let output = response.body.output
-            
-            ProblemModel.findById(problemId, (e,problem) => {
-                if(e) {
-                    console.log("Error in fetching problem",e)
-                    res.status(404).send(e)
-                }
+            console.log(program.stdin);
 
-                console.log(problem);
-                const expectedOutput = problem.expectedOutputs
+            const expectedOutput = problem.expectedOutputs
+            let difficultyScore = 20
+            switch(problem.difficulty) {
+                case "EASY": difficultyScore = 5
+                                break;
+                case "MEDIUM": difficultyScore = 10
+                                break
+                default: difficultyScore = 20
+            }
 
-                let difficultyScore = 20
-                switch(problem.difficulty) {
-                    case "EASY": difficultyScore = 5
-                                 break;
-                    case "MEDIUM": difficultyScore = 10
-                                   break
-                    default: difficultyScore = 20
-                }
-
-                let score = 0 
-                let submissionStatus = "WA"
-                output = output.trim().split("\n")
-                
-                console.log(output);
-                console.log(expectedOutput);
-                if(output.length === expectedOutput.length) {
-                    let count = 0
-                    for(let i=0;i<output.length;i++) {
-                        if(output[i] != expectedOutput[i]) {
-                            break
-                        }
-                        count++
-                    }
-                    if(count == output.length) {
-                        score = difficultyScore
-                        submissionStatus = "AC"
-                    }
-                }
-
-                const submission = new SubmissionModel({
-                    _id: mongoose.Types.ObjectId(problemId),
-                    problem: mongoose.Types.ObjectId(problemId),
-                    language: program.language,
-                    submissionTime: new Date().getTime(),
-                    runTime: response.body.cpuTime,
-                    memory: response.body.memory,
-                    score: score,
-                    sourceCode: program.script,
-                    versionIndex: program.versionIndex,
-                    submissionStatus: submissionStatus    
-                })
-
-                let userUpdate = {}
-                let problemUpdate = {}
-                if(submissionStatus === "AC") {
-                    userUpdate = { 
-                        $push: { solvedProblems: submission },
-                        $inc: { score: score}
-                    }
-                    problemUpdate = { $inc: {successfulSubmissions: 1, totalSubmissions: 1 } }
+            request({
+                url: 'https://api.jdoodle.com/v1/execute',
+                method: "POST",
+                json: program
+            }, (error, response, body) => {
+                console.log('error:', error);
+                console.log('statusCode:', response && response.statusCode);
+                console.log('body:', body);
+                if (error) {
+                    console.log("there was an error");
+                    res.send(error)
                 }
                 else {
-                    userUpdate = { $push: { attemptedProblems: submission } }
-                    problemUpdate = { $inc: { totalSubmissions: 1 } }
+        
+                    let output = response.body.output
+                    let score = 0 
+                    let submissionStatus = "WA"
+
+                    if(output.includes('JDoodle - Timeout')) {
+                        submissionStatus = "TLE"
+                    }
+                    else {
+                        output = output.trim().split("\n")
+                        console.log("output",output);
+                        console.log("expected", expectedOutput);
+
+                        if(output.length === expectedOutput.length) {
+                            let count = 0
+                            for(let i=0;i<output.length;i++) {
+                                if(output[i] != expectedOutput[i]) {
+                                    break
+                                }
+                                count++
+                            }
+                            if(count == output.length) {
+                                score = difficultyScore
+                                submissionStatus = "AC"
+                            }
+                        }
+                    }
+    
+                    const submission = new SubmissionModel({
+                        _id: mongoose.Types.ObjectId(problemId),
+                        problem: mongoose.Types.ObjectId(problemId),
+                        language: program.language,
+                        submissionTime: new Date().getTime(),
+                        runTime: response.body.cpuTime,
+                        memory: response.body.memory,
+                        score: score,
+                        sourceCode: program.script,
+                        versionIndex: program.versionIndex,
+                        submissionStatus: submissionStatus    
+                    })
+    
+                    let userUpdate = {}
+                    let problemUpdate = {}
+                    if(submissionStatus === "AC") {
+                        userUpdate = { 
+                            $push: { solvedProblems: submission },
+                            $inc: { score: score}
+                        }
+                        problemUpdate = { $inc: {successfulSubmissions: 1, totalSubmissions: 1 } }
+                    }
+                    else {
+                        userUpdate = { $push: { attemptedProblems: submission } }
+                        problemUpdate = { $inc: { totalSubmissions: 1 } }
+                    }
+    
+                    UserModel.findByIdAndUpdate(req.body.userId, 
+                        userUpdate, 
+                        (err,user) => { }
+                    )
+    
+                    ProblemModel.findByIdAndUpdate(problemId, 
+                        problemUpdate,
+                        (err, problem) => { }
+                    )
+    
+                    res.send("submission " + submission)
                 }
-
-                UserModel.findByIdAndUpdate(req.body.userId, 
-                    userUpdate, 
-                    (err,user) => { }
-                )
-
-                ProblemModel.findByIdAndUpdate(problemId, 
-                    problemUpdate,
-                    (err, problem) => { }
-                )
-
-                res.send("submission " + submission)
-            })
+            });
         }
-    });    
+    })
+
+    // request({
+    //     url: 'https://api.jdoodle.com/v1/execute',
+    //     method: "POST",
+    //     json: program
+    // }, (error, response, body) => {
+    //     console.log('error:', error);
+    //     console.log('statusCode:', response && response.statusCode);
+    //     console.log('body:', body);
+    //     if (error) {
+    //         console.log("there was an error");
+    //         res.send(error)
+    //     }
+    //     else {
+
+    //         let output = response.body.output
+            
+    //         ProblemModel.findById(problemId, (e,problem) => {
+    //             if(e) {
+    //                 console.log("Error in fetching problem",e)
+    //                 res.status(404).send(e)
+    //             }
+
+    //             console.log(problem);
+
+    //             const expectedOutput = problem.expectedOutputs
+
+    //             let difficultyScore = 20
+    //             switch(problem.difficulty) {
+    //                 case "EASY": difficultyScore = 5
+    //                              break;
+    //                 case "MEDIUM": difficultyScore = 10
+    //                                break
+    //                 default: difficultyScore = 20
+    //             }
+
+    //             let score = 0 
+    //             let submissionStatus = "WA"
+    //             output = output.trim().split("\n")
+                
+    //             console.log(output);
+    //             console.log(expectedOutput);
+    //             if(output.length === expectedOutput.length) {
+    //                 let count = 0
+    //                 for(let i=0;i<output.length;i++) {
+    //                     if(output[i] != expectedOutput[i]) {
+    //                         break
+    //                     }
+    //                     count++
+    //                 }
+    //                 if(count == output.length) {
+    //                     score = difficultyScore
+    //                     submissionStatus = "AC"
+    //                 }
+    //             }
+
+    //             const submission = new SubmissionModel({
+    //                 _id: mongoose.Types.ObjectId(problemId),
+    //                 problem: mongoose.Types.ObjectId(problemId),
+    //                 language: program.language,
+    //                 submissionTime: new Date().getTime(),
+    //                 runTime: response.body.cpuTime,
+    //                 memory: response.body.memory,
+    //                 score: score,
+    //                 sourceCode: program.script,
+    //                 versionIndex: program.versionIndex,
+    //                 submissionStatus: submissionStatus    
+    //             })
+
+    //             let userUpdate = {}
+    //             let problemUpdate = {}
+    //             if(submissionStatus === "AC") {
+    //                 userUpdate = { 
+    //                     $push: { solvedProblems: submission },
+    //                     $inc: { score: score}
+    //                 }
+    //                 problemUpdate = { $inc: {successfulSubmissions: 1, totalSubmissions: 1 } }
+    //             }
+    //             else {
+    //                 userUpdate = { $push: { attemptedProblems: submission } }
+    //                 problemUpdate = { $inc: { totalSubmissions: 1 } }
+    //             }
+
+    //             UserModel.findByIdAndUpdate(req.body.userId, 
+    //                 userUpdate, 
+    //                 (err,user) => { }
+    //             )
+
+    //             ProblemModel.findByIdAndUpdate(problemId, 
+    //                 problemUpdate,
+    //                 (err, problem) => { }
+    //             )
+
+    //             res.send("submission " + submission)
+    //         })
+    //     }
+    // });    
 }
 
 function getAllUsers(req,res) {
@@ -576,6 +682,11 @@ function login(req,res) {
             })
         }
     })
+}
+
+function logout(req,res) {
+    req.logout()
+    res.send("logged out")
 }
     
 
