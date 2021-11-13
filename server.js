@@ -6,8 +6,9 @@ import bodyParser from "body-parser"
 import request from "request"
 import md5 from "md5"
 import passport from "passport"
+import LocalStrategy from "passport-local"
 import session from "express-session"
-
+import bcrypt from "bcrypt"
 
 import path from 'path';
 const __dirname = path.resolve();
@@ -42,6 +43,7 @@ mongoose.connect(
 
 app.use(passport.initialize());
 app.use(passport.session());
+passport.use(new LocalStrategy(UserModel.authenticate()))
 passport.serializeUser(UserModel.serializeUser())
 passport.deserializeUser(UserModel.deserializeUser())
 
@@ -72,23 +74,24 @@ app.post("/rateProblem", rateProblem)
 
 app.get("/users", getAllUsers)
 app.get("/users/:userId", getUser)
-app.get("/:userId/solved", getAllSolvedProblems)
-app.get("/:userId/starred", getAllStarredProblems)
-app.get("/:userId/attempted", getAllAttemptedProblems)
+app.get("/solved", getAllSolvedProblems)
+app.get("/starred", getAllStarredProblems)
+app.get("/attempted", getAllAttemptedProblems)
 app.post("/addFriend",addFriend)
 app.post("/removeFriend",removeFriend)
-app.get("/:userId/friends", getFriends)
+app.get("/friends", getFriends)
 
 app.get("/login", (req,res) => {
     res.sendFile(__dirname + "/html/login.html")
 })
-app.post("/login", login) //
+// app.post("/login", login) //
 app.post("/logout", logout)
 
 app.get("/register", (req,res) => {
     res.sendFile(__dirname + "/html/signup.html")
 })
 app.post("/register", registerNewUser)
+app.post("/login", passport.authenticate("local"), login);
 
 app.post("/submitCode", submitCode) //
 app.post("/sampleCases", runSampleTestCases)
@@ -101,7 +104,13 @@ function getUserByUsername(username) {
 }
 
 function rateProblem(req,res) {
-    const userId = req.body.userId
+
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     const problemId = req.body.problemId
     const rating = +(req.body.rating)
     
@@ -112,100 +121,29 @@ function rateProblem(req,res) {
         rating: Number.parseInt(rating)
     })
 
-    RatingModel.findOneAndUpdate( {_id: userId, userId: userId, problemId: problemId}, 
+    RatingModel.findOneAndUpdate( {userId: userId, problemId: problemId}, 
         { $set: { rating: rating } },
         { upsert: true },
         (err,r) => {
+            console.log(err);
             RatingModel.find({problemId: problemId}, (e,ratings) => {
                 let avg = 0
                 ratings.forEach(i => avg += i.rating)
                 avg /= ratings.length
-                ProblemModel.findByIdAndUpdate(problemId, {$set: {rating: avg}}, (e,d) => console.log(avg))
+                ProblemModel.findByIdAndUpdate(problemId, {$set: {rating: avg}}, (e,d) => console.log(d))
             })
         }
     )
     res.status(200).send("Rated")
 }
 
-// const str = "#include<bits/stdc++.h>\n using namespace std; class P { public: int n; P(int x) {n = x;} void rev() {while(n) {cout<<n%10; n/=10;}}};int main(int argc,char **argv) {P p(12345); p.rev(); int i = 0; while(!i) {} return 0;}";
-// app.post("/execute", (req, res) => {
-
-//     let program = {
-//         script: str,
-//         language: "cpp17",
-//         versionIndex: 0,
-//         stdin: "",
-//         clientId: process.env.COMPILER_CLIENT_ID,
-//         clientSecret: process.env.COMPILER_SECRET
-//     }
-
-//     request({
-//         url: 'https://api.jdoodle.com/v1/execute',
-//         method: "POST",
-//         json: program
-//     }, (error, response, body) => {
-//         console.log('error:', error);
-//         console.log('statusCode:', response && response.statusCode);
-//         console.log('body:', body);
-//         if (error) {
-//             res.send(error)
-//         }
-//         else {
-//             res.send(response.body)
-//         }
-//     });
-// })
-
-// const sampleTagArray = ["array","dp","graph","bfs","dfs","binary search","sort","search","implementation","tree","trie","loops","string","adhoc"]
-
-// app.post("/addTags",(req,res) => {
-//     console.log(md5("array"));
-//     // f1f713c9e000f5d3f280adbd124df4f5
-//     // 6171240a8740adceeb3c3689
-//     TagModel.insertMany({}, sampleTagArray.map(tag => {
-//         return {
-//             // "__id": mongoose.mongo.BSONPure.ObjectID.fromString(tag),  
-//             "tag": tag
-//         }
-//     })).then((x) => res.render("" + x)) 
-// })
-
-app.post("/insertRandomProblems", (req,res) => {
-    ProblemModel.find({},(err,data) => {
-        if(err) {
-            console.log("err 75", err)
-        }
-        else {
-            const len = data.length
-            const sampleProblems = []
-            console.log("length",len)
-            for(let i=0;i<20;i++) {
-                let id = i + len
-                const tags = []
-                sampleTagArray.forEach(tag => Math.random() < 0.3 ? tags.push(tag) : 0)
-                sampleProblems.push({
-                    "number": id,
-                    "title": "Problem " + (id),
-                    "statement": "Statement " + (id),
-                    "testCases": [1,2,3,4,5].map(n => "Test Case " + n),
-                    "expectedOutputs": [1,2,3,4,5].map(n => "Expected Output " + n),
-                    "rating": Math.random()*5,
-                    "totalSubmissions": +(Math.random()*100),
-                    "successfulSubmissions": 3,
-                    // "tags": tags
-                })
-            }
-            console.log("sampleProblems", sampleProblems);
-            ProblemModel.insertMany(sampleProblems, (err,data) => {
-                res.send(err ? err : "ok")
-            })
-
-        }
-    })
-})
-
 
 function runSampleTestCases(req,res) {
+
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
 
     let program = {
         script: req.body.script,
@@ -235,6 +173,12 @@ function runSampleTestCases(req,res) {
 
 function submitCode(req,res) {
 
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     const problemId = req.body.problemId
 
     let program = {
@@ -286,6 +230,9 @@ function submitCode(req,res) {
                     if(output.includes('JDoodle - Timeout')) {
                         submissionStatus = "TLE"
                     }
+                    else if(output.includes("error") || output.includes("Error")) {
+                        submissionStatus = "ERR"
+                    }
                     else {
                         output = output.trim().split("\n")
                         console.log("output",output);
@@ -333,7 +280,7 @@ function submitCode(req,res) {
                         problemUpdate = { $inc: { totalSubmissions: 1 } }
                     }
     
-                    UserModel.findByIdAndUpdate(req.body.userId, 
+                    UserModel.findByIdAndUpdate(userId, 
                         userUpdate, 
                         (err,user) => { }
                     )
@@ -471,40 +418,26 @@ function getAllProblems(req,res) {
 
 function getProblem(req,res) {
     const problemId = req.params.problemId
-    const userId = req.params.userId
     ProblemModel.findById(problemId, (err,data) => {
         if(err) {
             res.status(400).send(err)
         }
         else {
-            if(userId) {
-                // to retrieve last submission of user ------ OPTIONAL///
-                UserModel.findById(userId, (e,user) => {
-                    if(e) {
-                        res.status(200).send({
-                            "problem": data
-                        })
-                    }
-                    else {
-                        const submission = user.solvedProblems.filter(u => u.problemId === problemId)[-1]
-                        res.status(200).send({
-                            "problem": data,
-                            "submission": submission
-                        })
-                    }
-                })
-            }
-            else {
-                res.status(200).send({
-                    "problem": data
-                })
-            }
+            res.status(200).send({
+                "problem": data
+            })
         }
     })
 }
 
 function getUser(req,res) {
-    UserModel.findById(req.params.userId, (err,user) => {
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
+    UserModel.findById(userId, (err,user) => {
         if(err) res.status(400).send(err)
         else {
             if(!user) res.status(404).send("User not found")
@@ -534,7 +467,12 @@ function getUser(req,res) {
 }
 
 function starProblem(req,res) {
-    const userId = req.body.userId
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     const problemId = req.body.problemId
 
     UserModel.findByIdAndUpdate(
@@ -547,7 +485,12 @@ function starProblem(req,res) {
 }
 
 function removeFromStarred(req,res) {
-    const userId = req.body.userId
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     const problemId = req.body.problemId
 
     UserModel.findByIdAndUpdate(
@@ -560,7 +503,12 @@ function removeFromStarred(req,res) {
 }
 
 function addFriend(req,res) {
-    const userId = req.body.userId
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     const friendId = req.body.friendId
 
     UserModel.findByIdAndUpdate(
@@ -573,7 +521,12 @@ function addFriend(req,res) {
 }
 
 function removeFriend(req,res) {
-    const userId = req.body.userId
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     const friendId = req.body.friendId
 
     UserModel.findByIdAndUpdate(
@@ -586,7 +539,12 @@ function removeFriend(req,res) {
 }
 
 function getFriends(req,res) {
-    const userId = req.params.userId
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     UserModel.findById(userId, (err,user) => {
         if(err) res.status(400).send(err)
         else {
@@ -598,7 +556,12 @@ function getFriends(req,res) {
 }
 
 function getAllSolvedProblems(req,res) {
-    const userId = req.params.userId
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     UserModel.findById(userId, (err,user) => {
         if(err || user === undefined) {
             console.log("User not found", err)
@@ -631,7 +594,12 @@ function getAllSolvedProblems(req,res) {
 // }
 
 function getAllStarredProblems(req,res) {
-    const userId = req.params.userId
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     UserModel.findById(userId, (err,user) => {
         const starred = user.starredProblems
         console.log(starred);
@@ -644,7 +612,12 @@ function getAllStarredProblems(req,res) {
 }
 
 function getAllAttemptedProblems(req,res) {
-    const userId = req.params.userId
+    if(!req.isAuthenticated()) {
+        res.redirect("/login")
+        return
+    }
+
+    const userId = req.user._id
     UserModel.findById(userId, (err,user) => {
         if(err || user === undefined) {
             console.log("User not found", err)
@@ -669,26 +642,26 @@ function getAllAttemptedProblems(req,res) {
 }
 
 function login(req,res) {
-    console.log("todo")
-    res.send("todo" + req.body.username)
-    const username = req.body.username
-    req.login(username, err => {
-        if(err) console.log(err)
-        else {
-            passport.authenticate("local") (req,res,() => {
-                UserModel.findOne({username: username}, (e,user) => {
-                    res.status(200).redirect("/users/" + user._id)
-                })
-            })
-        }
+    console.log("isauth", req.isAuthenticated());
+    const user = { username: req.body.username }
+    UserModel.findOne(user, (e,u) => {
+        u.authenticate(req.body.password, function(err,model,passwordError){
+            if(passwordError) {                
+                res.logout()
+                res.send('The given password is incorrect!!')
+            } else if(model) {
+                console.log("successful login")
+                res.redirect("/users/" + model._id)
+            }
+        })
     })
 }
 
 function logout(req,res) {
-    req.logout()
-    res.send("logged out")
+    console.log(req.isAuthenticated());
+    req.logout(() => console.log(req.isAuthenticated()))
+    res.send("logged out " + req.isAuthenticated())
 }
-    
 
 function registerNewUser(req,res) {
     const newUser = new UserModel({
@@ -702,7 +675,7 @@ function registerNewUser(req,res) {
     })
     UserModel.register(newUser, req.body.password, (err, user) => {
         if(err) {
-            res.status(409).send("Username already exists")
+            res.status(409).redirect("/login")
         }
         else {
             passport.authenticate("local") (req, res, () => {
@@ -711,3 +684,162 @@ function registerNewUser(req,res) {
         }
     })
 }
+
+
+
+
+
+// app.post("/abcd",(req,res) => {
+//     const start = req.body.start
+//     let a = [
+//         {
+//             number: 1,
+//             title: "HCF",
+//             statement: "Given 2 numbers a and b, find their highest common factor",
+//             testCases: [
+//                 "2 3",
+//                 "12 10",
+//                 "15 35",
+//                 "300 460",
+//                 "153284 838578",
+//                 "236793 648822",
+//                 "727272 272727"
+//             ],
+//             expectedOutputs: [
+//                 "1",
+//                 "2",
+//                 "5",
+//                 "20",
+//                 "2",
+//                 "51",
+//                 "90909"
+//             ],
+//             totalSubmissions: 0,
+//             successfulSubmissions: 0,
+//             rating: 0,
+//             difficulty: "EASY",
+//             tags: ["math"]
+//         },
+    
+    
+//         {
+//             number: 2,
+//             title: "Sum of an array",
+//             statement: "Given an array of integers, find its sum",
+//             testCases: [
+//                 "9 2 3 4 5 6 7 8 9 10",
+//                 "6 1 2 3 4 5 6",
+//                 "6 -1 -2 -3 -4 -5 -6",
+//                 "5 10 20 30 40 50",
+//                 "1 1",
+//                 "1 2",
+//                 "15 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1"
+//             ],
+//             expectedOutputs: [
+//                 "54",
+//                 "21",
+//                 "-21",
+//                 "150",
+//                 "1",
+//                 "2",
+//                 "15"
+//             ],
+//             totalSubmissions: 0,
+//             successfulSubmissions: 0,
+//             rating: 0,
+//             difficulty: "EASY",
+//             tags: ["array"]
+//         },
+    
+//         {
+//             number: 3,
+//             title: "Longest Increasing Subsequence",
+//             statement: "Given an array of integers, find the length of the longest strictly inreasing subsequence",
+//             testCases: [
+//                 "12 1 5 2 3 7 4 5 8 3 2 5 7",
+//                 "22 12 10 -9 0 0 1 4 2 3 4 3 2 1 2 3 4 2 3 2 2 1 3",
+//                 "14 15 15 15 15 12 1 2 -9 -7 0 -9 -9 -9 -6",
+//                 "19 1 2 3 4 5 6 5 4 3 2 1 2 3 4 5 6 7 8 9",
+//                 "9 153284 838578 5 -99393 44747 363 1729 47467 7364859",
+//                 "6 0 1 0 3 2 3",
+//                 "8 10 9 2 5 3 7 101 18"
+//             ],
+//             expectedOutputs: [
+//                 "6",
+//                 "6",
+//                 "3",
+//                 "9",
+//                 "5",
+//                 "4",
+//                 "4"
+//             ],
+//             totalSubmissions: 0,
+//             successfulSubmissions: 0,
+//             rating: 0,
+//             difficulty: "MEDIUM",
+//             tags: ["dp","search","array","binary search"]
+//         },
+    
+//         {
+//             number: 4,
+//             title: "Longest Palindromic Subsequence",
+//             statement: "Given a string, find the length of the longest palindromic subsequence",
+//             testCases: [
+//                 "bbbab",
+//                 "abcbcbacabcbacdfdgfgdfdgcbacabacabacabc",
+//                 "aaaaaaaabbbbbbbbaaaabababababaaabbbbbbababababcbcbcbcbcgsjfghuhdlkfihcscsa",
+//                 "abcdefakdkfdjgfjcnklshuyelasnncmxnvsghfdj",
+//                 "110092528774632971121323232312312",
+//                 "3333111133331243525137467591974524834",
+//                 "9868246966"
+//             ],
+//             expectedOutputs: [
+//                 "4",
+//                 "31",
+//                 "37",
+//                 "13",
+//                 "15",
+//                 "15",
+//                 "5"
+//             ],
+//             totalSubmissions: 0,
+//             successfulSubmissions: 0,
+//             rating: 0,
+//             difficulty: "MEDIUM",
+//             tags: ["dp","string","lps"]
+//         },
+    
+    
+//         {
+//             number: 5,
+//             title: "",
+//             statement: "Given a string, find the length of the longest palindromic subsequence",
+//             testCases: [
+//                 "{([{({({[[[](){}]]})})}])}",
+//                 "{{{{((()))}}}}",
+//                 "[",
+//                 "]",
+//                 "[(]{)}",
+//                 "()"
+//             ],
+//             expectedOutputs: [
+//                 "true",
+//                 "true",
+//                 "false",
+//                 "false",
+//                 "false",
+//                 "true"
+//             ],
+//             totalSubmissions: 0,
+//             successfulSubmissions: 0,
+//             rating: 0,
+//             difficulty: "MEDIUM",
+//             tags: ["dp","string","lps"]
+//         }
+//     ]
+    
+//     ProblemModel.create(a.slice(start).map(i => new ProblemModel(i)), (e,d) => {
+//         if(e) res.send(e)
+//         else res.send(d)
+//     })
+// })

@@ -12,10 +12,7 @@ export default new mongoose.Schema(
         successfulSubmissions: Number,
         rating: Number,
         difficulty: String,
-        tags: [{
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'tag'
-        }]
+        tags: [String]
 
     }, {
     collection: "problem"
