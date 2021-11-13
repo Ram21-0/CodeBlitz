@@ -24,7 +24,6 @@ app.use(
 
 import mongoose from "mongoose"
 import UserModel from "./db/user.js"
-import TagModel from "./db/tag.js"
 import ProblemSchema from "./db/ProblemSchema.js"
 import SubmissionSchema from "./db/SubmissionSchema.js"
 import RatingSchema from "./db/RatingSchema.js"
