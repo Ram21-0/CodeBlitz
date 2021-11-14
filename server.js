@@ -77,8 +77,9 @@ app.get("/solved", getAllSolvedProblems)
 app.get("/starred", getAllStarredProblems)
 app.get("/attempted", getAllAttemptedProblems)
 app.post("/addFriend",addFriend)
-app.post("/removeFriend",removeFriend)
+app.post("/removeFriend", removeFriend)
 app.get("/friends", getFriends)
+app.get("/leaderboard", getLeaderboard)
 
 app.get("/login", (req,res) => {
     res.sendFile(__dirname + "/html/login.html")
@@ -404,6 +405,18 @@ function getAllUsers(req,res) {
     })
 }
 
+function getLeaderboard(req,res) {
+    UserModel.find({}, (err,users) => {
+        if(err) {
+            res.status(400).send(err)
+        }
+        else {
+            users.sort((a,b)=>(b.score-a.score))
+            res.status(200).send(users)
+        }
+    })
+}
+
 function getAllProblems(req,res) {
     ProblemModel.find({}, (err,data) => {
         if(err) {
@@ -624,7 +637,7 @@ function getAllAttemptedProblems(req,res) {
         }
         else {
             let attemptedProblems = Array.from(new Set(user.attemptedProblems.map(p => p._id.toString())))
-            // console.log(solvedProblems);
+            console.log(attemptedProblems);
             ProblemModel.find(
                 { _id: { $in: attemptedProblems } },
                 (error,problems) => {
