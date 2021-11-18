@@ -9,6 +9,7 @@ import passport from "passport"
 import LocalStrategy from "passport-local"
 import session from "express-session"
 import bcrypt from "bcrypt"
+import cors from "cors"
 
 import path from 'path';
 const __dirname = path.resolve();
@@ -42,6 +43,10 @@ mongoose.connect(
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use(cors());
+app.options('*', cors());
+
 passport.use(new LocalStrategy(UserModel.authenticate()))
 passport.serializeUser(UserModel.serializeUser())
 passport.deserializeUser(UserModel.deserializeUser())
@@ -106,7 +111,10 @@ function getUserByUsername(username) {
 function rateProblem(req,res) {
 
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -141,7 +149,10 @@ function rateProblem(req,res) {
 function runSampleTestCases(req,res) {
 
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -163,10 +174,10 @@ function runSampleTestCases(req,res) {
         console.log('statusCode:', response && response.statusCode);
         console.log('body:', body);
         if (error) {
-            res.send(error)
+            res.json(error)
         }
         else {
-            res.send(response.body)
+            res.json(response.body)
         }
     });
 }
@@ -174,7 +185,10 @@ function runSampleTestCases(req,res) {
 function submitCode(req,res) {
 
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -397,10 +411,10 @@ function submitCode(req,res) {
 function getAllUsers(req,res) {
     UserModel.find({}, (err,users) => {
         if(err) {
-            res.status(400).send(err)
+            res.status(400).json(err)
         }
         else {
-            res.status(200).send(users)
+            res.status(200).json(users)
         }
     })
 }
@@ -408,11 +422,11 @@ function getAllUsers(req,res) {
 function getLeaderboard(req,res) {
     UserModel.find({}, (err,users) => {
         if(err) {
-            res.status(400).send(err)
+            res.status(400).json(err)
         }
         else {
             users.sort((a,b)=>(b.score-a.score))
-            res.status(200).send(users)
+            res.status(200).json(users)
         }
     })
 }
@@ -420,10 +434,10 @@ function getLeaderboard(req,res) {
 function getAllProblems(req,res) {
     ProblemModel.find({}, (err,data) => {
         if(err) {
-            res.status(400).send(err)
+            res.status(400).json(err)
         }
         else {
-            res.status(200).send(data)
+            res.status(200).json(data)
         }
     })
 }
@@ -432,10 +446,10 @@ function getProblem(req,res) {
     const problemId = req.params.problemId
     ProblemModel.findById(problemId, (err,data) => {
         if(err) {
-            res.status(400).send(err)
+            res.status(400).json(err)
         }
         else {
-            res.status(200).send({
+            res.status(200).json({
                 "problem": data
             })
         }
@@ -444,13 +458,16 @@ function getProblem(req,res) {
 
 function getUser(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
     const userId = req.user._id
     UserModel.findById(userId, (err,user) => {
-        if(err) res.status(400).send(err)
+        if(err) res.status(400).json(err)
         else {
             if(!user) res.status(404).send("User not found")
             console.log(user);
@@ -480,7 +497,10 @@ function getUser(req,res) {
 
 function starProblem(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -516,7 +536,10 @@ function removeFromStarred(req,res) {
 
 function addFriend(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -534,7 +557,10 @@ function addFriend(req,res) {
 
 function removeFriend(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -552,16 +578,19 @@ function removeFriend(req,res) {
 
 function getFriends(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
     const userId = req.user._id
     UserModel.findById(userId, (err,user) => {
-        if(err) res.status(400).send(err)
+        if(err) res.status(400).json(err)
         else {
             UserModel.find( { _id: {$in: user.friends} }, (e,friends) => {
-                res.status(200).send(friends)
+                res.status(200).json(friends)
             })
         }
     })
@@ -569,7 +598,10 @@ function getFriends(req,res) {
 
 function getAllSolvedProblems(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -577,7 +609,7 @@ function getAllSolvedProblems(req,res) {
     UserModel.findById(userId, (err,user) => {
         if(err || user === undefined) {
             console.log("User not found", err)
-            res.status(404).send(err)
+            res.status(404).json(err)
         }
         else {
             let solvedProblems = Array.from(new Set(user.solvedProblems.map(p => p._id.toString())))
@@ -586,10 +618,10 @@ function getAllSolvedProblems(req,res) {
                 { _id: { $in: solvedProblems } },
                 (error,problems) => {
                     if(error || !problems) {
-                        res.status(400).send(error)
+                        res.status(400).json(error)
                     }
                     else {
-                        res.status(200).send(problems)
+                        res.status(200).json(problems)
                     }
                 }
             )
@@ -607,7 +639,10 @@ function getAllSolvedProblems(req,res) {
 
 function getAllStarredProblems(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -617,15 +652,18 @@ function getAllStarredProblems(req,res) {
         console.log(starred);
 
         ProblemModel.find( { _id: { $in: starred } }, (error,problems) => {
-            if(error) res.status(400).send(err)
-            else res.status(200).send(problems)
+            if(error) res.status(400).json(err)
+            else res.status(200).json(problems)
         })
     })
 }
 
 function getAllAttemptedProblems(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -633,7 +671,7 @@ function getAllAttemptedProblems(req,res) {
     UserModel.findById(userId, (err,user) => {
         if(err || user === undefined) {
             console.log("User not found", err)
-            res.status(404).send(err)
+            res.status(404).json(err)
         }
         else {
             let attemptedProblems = Array.from(new Set(user.attemptedProblems.map(p => p._id.toString())))
@@ -642,10 +680,10 @@ function getAllAttemptedProblems(req,res) {
                 { _id: { $in: attemptedProblems } },
                 (error,problems) => {
                     if(error || !problems) {
-                        res.status(400).send(error)
+                        res.status(400).json(error)
                     }
                     else {
-                        res.status(200).send(problems)
+                        res.status(200).json(problems)
                     }
                 }
             )
@@ -663,7 +701,8 @@ function login(req,res) {
                 res.send('The given password is incorrect!!')
             } else if(model) {
                 console.log("successful login")
-                res.redirect("/users/" + model._id)
+                res.status(200).json(model)
+                // res.redirect("/users/" + model._id)
             }
         })
     })
