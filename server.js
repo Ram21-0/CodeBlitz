@@ -518,7 +518,10 @@ function starProblem(req,res) {
 
 function removeFromStarred(req,res) {
     if(!req.isAuthenticated()) {
-        res.redirect("/login")
+        let obj = {
+            login: false
+        }
+        res.json(obj)
         return
     }
 
@@ -726,11 +729,14 @@ function registerNewUser(req,res) {
     })
     UserModel.register(newUser, req.body.password, (err, user) => {
         if(err) {
-            res.status(409).redirect("/login")
+            let obj = {
+                login: false
+            }
+            res.json(obj)
         }
         else {
             passport.authenticate("local") (req, res, () => {
-                res.status(200).redirect("/users/" + user._id)
+                res.status(200).json(user)
             })
         }
     })

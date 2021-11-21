@@ -18,6 +18,8 @@
 .env.test.local
 .env.production.local
 .env
+addProbs.js
+samples.js
 
 npm-debug.log*
 yarn-debug.log*
