@@ -110,13 +110,13 @@ function getUserByUsername(username) {
 
 function rateProblem(req,res) {
 
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     const problemId = req.body.problemId
@@ -148,13 +148,13 @@ function rateProblem(req,res) {
 
 function runSampleTestCases(req,res) {
 
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     let program = {
         script: req.body.script,
@@ -184,13 +184,13 @@ function runSampleTestCases(req,res) {
 
 function submitCode(req,res) {
 
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     const problemId = req.body.problemId
@@ -457,13 +457,13 @@ function getProblem(req,res) {
 }
 
 function getUser(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
@@ -496,13 +496,13 @@ function getUser(req,res) {
 }
 
 function starProblem(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     const problemId = req.body.problemId
@@ -517,13 +517,13 @@ function starProblem(req,res) {
 }
 
 function removeFromStarred(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     const problemId = req.body.problemId
@@ -538,13 +538,13 @@ function removeFromStarred(req,res) {
 }
 
 function addFriend(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     const friendId = req.body.friendId
@@ -559,13 +559,13 @@ function addFriend(req,res) {
 }
 
 function removeFriend(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     const friendId = req.body.friendId
@@ -580,13 +580,13 @@ function removeFriend(req,res) {
 }
 
 function getFriends(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
@@ -600,13 +600,13 @@ function getFriends(req,res) {
 }
 
 function getAllSolvedProblems(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
@@ -641,13 +641,13 @@ function getAllSolvedProblems(req,res) {
 // }
 
 function getAllStarredProblems(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
@@ -662,13 +662,13 @@ function getAllStarredProblems(req,res) {
 }
 
 function getAllAttemptedProblems(req,res) {
-    if(!req.isAuthenticated()) {
-        let obj = {
-            login: false
-        }
-        res.json(obj)
-        return
-    }
+    // if(!req.isAuthenticated()) {
+    //     let obj = {
+    //         login: false
+    //     }
+    //     res.json(obj)
+    //     return
+    // }
 
     const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
