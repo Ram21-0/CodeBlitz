@@ -86,15 +86,15 @@ app.post("/removeFriend", removeFriend)
 app.get("/friends", getFriends)
 app.get("/leaderboard", getLeaderboard)
 
-app.get("/login", (req,res) => {
-    res.sendFile(__dirname + "/html/login.html")
-})
+// app.get("/login", (req,res) => {
+//     res.sendFile(__dirname + "/html/login.html")
+// })
 // app.post("/login", login) //
 app.post("/logout", logout)
 
-app.get("/register", (req,res) => {
-    res.sendFile(__dirname + "/html/signup.html")
-})
+// app.get("/register", (req,res) => {
+//     res.sendFile(__dirname + "/html/signup.html")
+// })
 app.post("/register", registerNewUser)
 app.post("/login", passport.authenticate("local"), login);
 
@@ -118,7 +118,7 @@ function rateProblem(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     const problemId = req.body.problemId
     const rating = +(req.body.rating)
     
@@ -192,7 +192,7 @@ function submitCode(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     const problemId = req.body.problemId
 
     let program = {
@@ -465,7 +465,7 @@ function getUser(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
         if(err) res.status(400).json(err)
         else {
@@ -504,7 +504,7 @@ function starProblem(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     const problemId = req.body.problemId
 
     UserModel.findByIdAndUpdate(
@@ -525,7 +525,7 @@ function removeFromStarred(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     const problemId = req.body.problemId
 
     UserModel.findByIdAndUpdate(
@@ -546,7 +546,7 @@ function addFriend(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     const friendId = req.body.friendId
 
     UserModel.findByIdAndUpdate(
@@ -567,7 +567,7 @@ function removeFriend(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     const friendId = req.body.friendId
 
     UserModel.findByIdAndUpdate(
@@ -588,7 +588,7 @@ function getFriends(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
         if(err) res.status(400).json(err)
         else {
@@ -608,7 +608,7 @@ function getAllSolvedProblems(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
         if(err || user === undefined) {
             console.log("User not found", err)
@@ -649,7 +649,7 @@ function getAllStarredProblems(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
         const starred = user.starredProblems
         console.log(starred);
@@ -670,7 +670,7 @@ function getAllAttemptedProblems(req,res) {
         return
     }
 
-    const userId = req.user._id
+    const userId = req.body.userId
     UserModel.findById(userId, (err,user) => {
         if(err || user === undefined) {
             console.log("User not found", err)
