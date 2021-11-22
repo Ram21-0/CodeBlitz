@@ -304,7 +304,7 @@ function submitCode(req,res) {
                         (err, problem) => { }
                     )
     
-                    res.send("submission " + submission)
+                    res.json(submission)
                 }
             });
         }
