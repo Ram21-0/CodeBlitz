@@ -297,7 +297,12 @@ function submitCode(req,res) {
     
                     UserModel.findByIdAndUpdate(userId, 
                         userUpdate, 
-                        (err,user) => { }
+                        (err,user) => {
+                            res.json({
+                                user: user,
+                                submission: submission
+                            })
+                         }
                     )
     
                     ProblemModel.findByIdAndUpdate(problemId, 
@@ -305,7 +310,7 @@ function submitCode(req,res) {
                         (err, problem) => { }
                     )
     
-                    res.json(submission)
+                    
                 }
             });
         }
