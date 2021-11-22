@@ -77,13 +77,13 @@ app.post("/unstar", removeFromStarred)
 app.post("/rateProblem", rateProblem)
 
 app.get("/users", getAllUsers)
-app.get("/users/:userId", getUser)
-app.get("/solved", getAllSolvedProblems)
+app.post("/users", getUser)
+app.post("/solved", getAllSolvedProblems)
 app.get("/starred", getAllStarredProblems)
-app.get("/attempted", getAllAttemptedProblems)
+app.post("/attempted", getAllAttemptedProblems)
 app.post("/addFriend",addFriend)
 app.post("/removeFriend", removeFriend)
-app.get("/friends", getFriends)
+app.post("/friends", getFriends)
 app.get("/leaderboard", getLeaderboard)
 
 // app.get("/login", (req,res) => {
